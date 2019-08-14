@@ -1,0 +1,168 @@
+//
+//  main.swift
+//  Testing
+//
+//  Created by AB on 8/5/19.
+//  Copyright © 2019 AB$cript$. All rights reserved.
+//
+typealias TD = [[String]]
+typealias csArr = Array<(Int, Int)>
+// array which contains of coordinates' set
+
+import Foundation
+
+func creTwoD(_ w: Int, _ h: Int, _ char: String)->TD{
+    return Array(repeating: Array(repeating: char, count: h+2), count: w+2)
+    // increasing "h" and "w" values by two, i create special borders to prevent errors with array`s indexes
+}
+
+func print(_ grid: TD, _ w: Int, _ h: Int){
+    for i in 0...w{
+        var str: String = ""
+        for j in 0...h{
+            str += String(grid[i][j])
+            // i should use additional variable to print grid correctly
+        }
+        print(str)
+    }
+}
+
+func placeMines(_ grid: inout TD, _ count: Int, _ h: Int){
+    var x: Int, y:Int
+    for _ in 0...count{
+        x = Int.random(in: 1...(h))
+        y = Int.random(in: 1...(h))
+        grid[x][y] = "*"
+    }
+}
+
+func calculateSquares(_ grid: inout TD, _ h: Int, _ w: Int){
+    var n: Int
+    for i in 1...w{
+        for j in 1...h{
+            n = 0
+            if(grid[i][j] != "*"){
+                for x in (i-1)...(i+1){
+                    for y in (j-1)...(j+1){
+                        if(grid[x][y] == "*"){n += 1}
+                    }
+                }
+                grid[i][j] = String(n)
+            }
+        }
+    }
+}
+
+func drawOrientSymbols(_ grid: inout TD, _ w: Int, _ h: Int){
+    grid[0][0] = " "
+    for i in 1...w{ grid[0][i] = " " + String(i) + " " }
+    for i in 1...h { grid[i][0] = String(i) }
+}
+
+func showMines(_ dgrid:TD, _ sgrid: TD, _ w: Int, _ h: Int, _ x: Int, _ y: Int)->TD{
+    var sgrid: TD = sgrid
+    for i in 1...w{
+        for j in 1...h{
+            if(dgrid[i][j] == "*"){ sgrid[i][j] = " * "}
+        }
+    }
+    sgrid[x][y] = "<*>"
+    return sgrid
+}
+
+func createBorderData(_ dgrid: inout TD, _ w: Int, _ h: Int){
+    let w: Int = w+1, h: Int = h+1
+    for i in 0...w{ dgrid[0][i] = "B" }
+    for i in 0...h{ dgrid[i][0] = "B" }
+    for i in stride(from: w, to: 0, by: -1){ dgrid[w][i] = "B" }
+    for i in stride(from: h, to: 0, by: -1){ dgrid[i][h] = "B" }
+}
+
+//func replaceElement(_ sgrid: inout TD, _ elm: String,_ x: Int, _ y: Int){ sgrid[x][y] = " " + elm + " " }
+
+//func markAsChecked(_ dgrid: inout TD, _ x: Int, _ y: Int){ dgrid[x][y] = "C" }
+
+func processElm(_ sgrid: inout TD, _ dgrid: inout TD, _ x: Int, _ y: Int){
+    sgrid[x][y] = " " + dgrid[x][y] + " "
+    dgrid[x][y] = "C"
+}
+
+func checkClearPlatesAround(_ dgrid:inout TD, _ sgrid: inout TD, _ x: Int, _ y: Int){
+    var cSet: csArr = []
+    //count: Int = -1
+    // This's array which contains all the empty plates' coordinates
+    
+    processElm(&sgrid, &dgrid, x, y)
+    
+    func checkAround(_ dgrid: inout TD, _ sgrid: inout TD, _ cSet: inout csArr, _ x: Int, _ y: Int){
+    if(cSet.count >= 1){cSet.removeLast()}
+        
+        for i in (x-1)...(x+1){
+            for j in (y-1)...(y+1){
+                if(dgrid[i][j] != "C" && dgrid[i][j] != "B"){
+                    if(dgrid[i][j] == "0"){ cSet.append((i, j))}
+                    //print("   Discovered: \(i) , \(j) == \(dgrid[i][j])")
+                     processElm(&sgrid, &dgrid, i, j)
+                }
+            }
+        }
+    }
+    
+    checkAround(&dgrid, &sgrid, &cSet, x, y)
+    
+    while(cSet.count >= 1){
+        //print("Checking: \(cSet[cSet.count-1].0) , \(cSet[cSet.count-1].1) == 0")
+        checkAround(&dgrid, &sgrid, &cSet, cSet[cSet.count-1].0, cSet[cSet.count-1].1)
+    }
+    
+}
+
+func randomNum(_ num: Int)->Int{
+    return Int(arc4random_uniform(UInt32(num)))
+}
+
+func successfulInput(_ dgrid: TD, _ x: Int, _ y: Int, _ w: Int, _ h: Int)-> Bool{
+    if(x >= 1 && y >= 1 && x <= w && y <= h && dgrid[x][y] != "C" && dgrid[x][y] != "B"){return true}
+    return false
+}
+
+// ---------------------------------------------
+
+var width: Int = 9, height: Int = 9,
+dgrid: TD = creTwoD(width, height, "0"),
+//creating of the data grid, which contains all the elements in theirs current states
+sgrid: TD = creTwoD(width, height, "|_|"),
+//creating of the show grid, which shows to the user
+gameIsNotOver: Bool = true
+
+
+placeMines(&dgrid, (width*height)/6 , height)
+//places mines on the data grid, second parametr of this function means the number of mines
+calculateSquares(&dgrid, width, height)
+//works out the number of mines around for each plate
+createBorderData(&dgrid, width, height)
+//creates special borders around the data grid to ease the programm code
+drawOrientSymbols(&sgrid, width, height)
+//draws numbers around the show grid, to help user input correctly
+
+print(sgrid, width, height)
+
+ var x:Int = 1, y:Int = 1
+
+while(gameIsNotOver){
+    
+    x = Int(readLine() ?? "1")!; y = Int(readLine() ?? "1")!
+    
+        if(successfulInput(dgrid, x, y, width, height)){
+            switch (dgrid[x][y]){
+            case "*": gameIsNotOver = false
+            case "0": checkClearPlatesAround(&dgrid, &sgrid, x, y)
+            case let elm where elm != "C":  processElm(&sgrid, &dgrid, x, y)
+            default: break
+            }
+            print(sgrid, width, height)
+    }
+        else { print("Input correctly!") }
+}
+
+print(showMines(dgrid, sgrid, width, height, x, y), width, height)
