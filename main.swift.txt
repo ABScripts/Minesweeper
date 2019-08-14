@@ -1,6 +1,6 @@
 //
 //  main.swift
-//  Testing
+//  Minesweeper
 //
 //  Created by AB on 8/5/19.
 //  Copyright © 2019 AB$cript$. All rights reserved.
